@@ -41,8 +41,7 @@ textarea{font-size:16px;width:100%;min-height:70px;border:1px solid #cbd5e1;bord
 <div><label data-t="unit"></label><select id="unit"></select></div></div>
 <input id="cunit" style="display:none;margin-top:8px">
 <label data-t="size"></label><input id="size" autocomplete="off">
-<div class="row"><div><label data-t="price"></label><input id="price" type="number" step="any" min="0" inputmode="decimal" required></div>
-<div><label data-t="date"></label><input id="date" type="date" required></div></div>
+<div class="row"><div><label data-t="price"></label><input id="price" type="number" step="any" min="0" inputmode="decimal" required></div></div>
 <div class="tot"><span data-t="line"></span><b id="line">0</b></div>
 <button id="save" data-t="add"></button><button type="button" class="sec" id="cancel" style="display:none" data-t="cancel"></button>
 </form></div>
@@ -98,12 +97,13 @@ document.querySelectorAll("[data-t]").forEach(e=>e.textContent=t(e.dataset.t));$
 function calc(){$("line").textContent=fmt((+$("qty").value||0)*(+$("price").value||0))}
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
 const fdate=d=>new Date(d+"T12:00").toLocaleDateString(lang==="ar"?"ar-TD":lang==="fr"?"fr-FR":"en-GB",{day:"numeric",month:"short",year:"numeric"});
+const ftime=e=>e.at&&e.at.slice(11,16)!=="00:00"?" "+new Date(e.at).toLocaleTimeString(lang==="ar"?"ar-TD":lang==="fr"?"fr-FR":"en-GB",{hour:"2-digit",minute:"2-digit"}):"";
 function render(){renderCat();const d=today(),m=d.slice(0,7);let a=0,td=0,mo=0;data.concat(...batches.map(b=>b.entries)).forEach(e=>{const v=e.qty*e.price;a+=v;if(e.date===d)td+=v;if(e.date.startsWith(m))mo+=v});
 $("tAll").textContent=fmt(a);$("paidBtn").disabled=!data.length;$("paidBtn").style.opacity=data.length?1:.5;$("tToday").textContent=fmt(td);$("tMonth").textContent=fmt(mo);
 const s=[...data].sort((x,y)=>y.date.localeCompare(x.date)||y.id-x.id);
-$("list").innerHTML=s.length?s.map(e=>`<div class="item"><div><b>${esc(e.name)}</b>${e.size?" <small>("+esc(e.size)+")</small>":""}<br><small>📅 <b>${fdate(e.date)}</b></small><br><small>${e.qty} ${esc(e.unit)} × ${fmt(e.price)}</small><br><b>${fmt(e.qty*e.price)}</b></div><div class="act"><button class="sec" onclick="edit(${e.id})">✏️</button><button class="sec" onclick="del(${e.id})">🗑️</button></div></div>`).join(""):`<p>${t("empty")}</p>`}
+$("list").innerHTML=s.length?s.map(e=>`<div class="item"><div><b>${esc(e.name)}</b>${e.size?" <small>("+esc(e.size)+")</small>":""}<br><small>📅 <b>${fdate(e.date)}${ftime(e)}</b></small><br><small>${e.qty} ${esc(e.unit)} × ${fmt(e.price)}</small><br><b>${fmt(e.qty*e.price)}</b></div><div class="act"><button class="sec" onclick="edit(${e.id})">✏️</button><button class="sec" onclick="del(${e.id})">🗑️</button></div></div>`).join(""):`<p>${t("empty")}</p>`}
 function creset(){cEdit=null;$("cf").reset();$("ccancel").style.display="none"}
-function reset(){editId=null;$("f").reset();$("date").value=today();$("cunit").style.display="none";$("cancel").style.display="none";$("save").textContent=t("add");calc()}
+function reset(){editId=null;$("f").reset();$("cunit").style.display="none";$("cancel").style.display="none";$("save").textContent=t("add");calc()}
 window.cedit=i=>{const c=cat[i];cEdit=c;$("cname").value=c.name;units();$("cunitSel").value=c.unit;$("cprice").value=c.price;$("ccancel").style.display="";scrollTo(0,0)};
 window.cdel=i=>{if(confirm(t("delItem"))){cat.splice(i,1);saveCat();renderCat()}};
 $("cf").onsubmit=ev=>{ev.preventDefault();const n=$("cname").value.trim(),ex=findCat(n);if(ex&&ex!==cEdit){alert(t("exists"));return}
@@ -114,12 +114,13 @@ $("mbtn").onclick=()=>{showTab("P");showMgr(1)};$("back").onclick=()=>showMgr(0)
 $("name").onfocus=$("name").oninput=showSug;$("name").onblur=()=>setTimeout(()=>$("sug").style.display="none",200);
 $("sug").onmousedown=ev=>{const d=ev.target.closest("[data-n]");if(d){ev.preventDefault();pickItem(d.dataset.n)}};
 $("name").onchange=()=>pickItem($("name").value);
-window.edit=id=>{const e=data.find(x=>x.id===id);editId=id;$("name").value=e.name;$("qty").value=e.qty;$("size").value=e.size||"";$("price").value=e.price;$("date").value=e.date;
+window.edit=id=>{const e=data.find(x=>x.id===id);editId=id;$("name").value=e.name;$("qty").value=e.qty;$("size").value=e.size||"";$("price").value=e.price;
 setUnit(e.unit);
 $("save").textContent=t("update");$("cancel").style.display="";calc();scrollTo(0,0)};
 window.del=id=>{if(confirm(t("del"))){data=data.filter(x=>x.id!==id);save();render()}};
 $("f").onsubmit=ev=>{ev.preventDefault();const unit=$("unit").value==="__c"?($("cunit").value.trim()||"-"):$("unit").value;
-const e={id:editId||Date.now(),name:$("name").value.trim(),size:$("size").value.trim(),qty:+$("qty").value,unit,price:+$("price").value,date:$("date").value};
+const old=editId?data.find(x=>x.id===editId):null,at=old?(old.at||old.date+"T00:00:00"):nowLocal();
+const e={id:editId||Date.now(),at,name:$("name").value.trim(),size:$("size").value.trim(),qty:+$("qty").value,unit,price:+$("price").value,date:at.slice(0,10)};
 if(editId)data=data.map(x=>x.id===editId?e:x);else data.push(e);save();
 const c=findCat(e.name);if(c){c.price=e.price;c.unit=e.unit;c.size=e.size;saveCat()}else if(e.name&&(auto||confirm(t("askSave").replace("%s",e.name)))){cat.push({name:e.name,unit:e.unit,price:e.price,size:e.size});saveCat()}
 reset();render()};
@@ -127,7 +128,7 @@ $("cancel").onclick=reset;$("qty").oninput=$("price").oninput=calc;
 $("unit").onchange=()=>{$("cunit").style.display=$("unit").value==="__c"?"":"none"};
 $("lang").onchange=()=>{lang=$("lang").value;localStorage.pa_lang=lang;applyLang()};
 $("cur").value=cur;$("cur").oninput=()=>{cur=$("cur").value.trim()||"FCFA";localStorage.pa_cur=cur;render();calc()};
-$("csv").onclick=()=>{const q=v=>`"${String(v).replace(/"/g,'""')}"`;const rows=[["Date","Item","Size","Qty","Unit","Unit price","Total","Currency"]].concat(data.map(e=>[e.date,e.name,e.size||"",e.qty,e.unit,e.price,e.qty*e.price,cur]));
+$("csv").onclick=()=>{const q=v=>`"${String(v).replace(/"/g,'""')}"`;const rows=[["Date","Time","Item","Size","Qty","Unit","Unit price","Total","Currency"]].concat(data.map(e=>[e.date,(e.at||"").slice(11,16),e.name,e.size||"",e.qty,e.unit,e.price,e.qty*e.price,cur]));
 const b=new Blob(["\ufeff"+rows.map(r=>r.map(q).join(",")).join("\r\n")],{type:"text/csv"});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="purchases-"+today()+".csv";a.click()};
 
 const FIX={"poweded milk": "Powdered Milk", "pringals": "Pringles", "tomato sause": "Tomato Sauce", "osolating fan": "Oscillating Fan", "teck screw": "Tek Screw", "tecl screw": "Tek Screw", "grease nossel": "Grease Nipple", "grease nossle": "Grease Nipple", "ant - freeze": "Antifreeze", "buskets": "Buckets", "dish wash liquad": "Dishwashing Liquid", "iphone charger": "iPhone Charger", "strecher": "Stretcher", "kook spoon": "Cooking Spoon", "eat plate": "Eating Plate", "eat spoon": "Eating Spoon", "irb roofsheet": "IBR Roof Sheet", "power stip w": "Power Strip W", "200w solar": "200W Solar", "maranda apple": "Mirinda Apple", "maranda orange": "Mirinda Orange", "red doug": "Red Dough"};const fixName=s=>FIX[s.toLowerCase()]||s;
@@ -154,14 +155,14 @@ if(!confirm(t("paidAsk").replace("%n",data.length).replace("%t",fmt(tot))))retur
 batches.push({id:Date.now(),paidAt:nowLocal(),store:$("pStore").value.trim(),note:$("pNote").value.trim(),entries:data,count:data.length,total:tot});saveB();
 data=[];save();$("paidForm").style.display="none";reset();render();alert(t("paidDone"))};
 $("histBtn").onclick=()=>showHist(1);$("hBack").onclick=()=>{if(curB){curB=null;renderH()}else showHist(0)};
-function csvRows(bs){const rows=[["Paid at","Store","Batch note","Date","Item","Size","Qty","Unit","Unit price","Total","Currency"]];bs.forEach(b=>b.entries.forEach(e=>rows.push([b.paidAt.replace("T"," "),b.store,b.note,e.date,e.name,e.size||"",e.qty,e.unit,e.price,e.qty*e.price,cur])));return rows}
+function csvRows(bs){const rows=[["Paid at","Store","Batch note","Date","Time","Item","Size","Qty","Unit","Unit price","Total","Currency"]];bs.forEach(b=>b.entries.forEach(e=>rows.push([b.paidAt.replace("T"," "),b.store,b.note,e.date,(e.at||"").slice(11,16),e.name,e.size||"",e.qty,e.unit,e.price,e.qty*e.price,cur])));return rows}
 function dl(rows,fn){const q=v=>`"${String(v??"").replace(/"/g,'""')}"`;const b=new Blob(["\ufeff"+rows.map(r=>r.map(q).join(",")).join("\r\n")],{type:"text/csv"});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=fn;a.click()}
 $("hCsvAll").onclick=()=>dl(csvRows(batches),"paid-history-"+today()+".csv");
 function reopen(b){if(!confirm(t("reopenAsk")))return;data=data.concat(b.entries);save();batches=batches.filter(x=>x!==b);saveB();curB=null;render();showHist(0)}
 $("hUndo").onclick=()=>{const b=[...batches].sort((x,y)=>y.paidAt.localeCompare(x.paidAt)||y.id-x.id)[0];if(b)reopen(b)};
 function renderH(){const L=$("hList");$("hUndo").style.display=!curB&&batches.length?"":"none";$("hCsvAll").style.display=!curB&&batches.length?"":"none";
 $("pStoreList").innerHTML=[...new Set(batches.map(b=>b.store).filter(Boolean))].sort().map(n=>`<option value="${esc(n)}">`).join("");
-if(curB){const b=curB;L.innerHTML=`<h2 style="margin:0 0 4px;font-size:19px">🏪 ${esc(b.store||t("noStore"))}</h2><small>💰 ${fdt(b.paidAt)}</small>${b.note?`<p style="margin:6px 0">📝 ${esc(b.note)}</p>`:""}`+b.entries.map(e=>`<div class="item"><div><b>${esc(e.name)}</b>${e.size?" <small>("+esc(e.size)+")</small>":""}<br><small>📅 ${fdate(e.date)} · ${e.qty} ${esc(e.unit)} × ${fmt(e.price)}</small></div><b>${fmt(e.qty*e.price)}</b></div>`).join("")+`<div class="tot"><span>${t("total")} (${b.count})</span><span class="big">${fmt(b.total)}</span></div><button type="button" id="bCsv">${t("exportBatch")}</button><button type="button" class="sec" id="bReopen">${t("reopen")}</button>`;
+if(curB){const b=curB;L.innerHTML=`<h2 style="margin:0 0 4px;font-size:19px">🏪 ${esc(b.store||t("noStore"))}</h2><small>💰 ${fdt(b.paidAt)}</small>${b.note?`<p style="margin:6px 0">📝 ${esc(b.note)}</p>`:""}`+b.entries.map(e=>`<div class="item"><div><b>${esc(e.name)}</b>${e.size?" <small>("+esc(e.size)+")</small>":""}<br><small>📅 ${fdate(e.date)}${ftime(e)} · ${e.qty} ${esc(e.unit)} × ${fmt(e.price)}</small></div><b>${fmt(e.qty*e.price)}</b></div>`).join("")+`<div class="tot"><span>${t("total")} (${b.count})</span><span class="big">${fmt(b.total)}</span></div><button type="button" id="bCsv">${t("exportBatch")}</button><button type="button" class="sec" id="bReopen">${t("reopen")}</button>`;
 $("bCsv").onclick=()=>dl(csvRows([b]),"paid-"+b.paidAt.slice(0,10)+"-"+(b.store||"batch").replace(/[^\w-]+/g,"_")+".csv");$("bReopen").onclick=()=>reopen(b);return}
 const s=[...batches].sort((x,y)=>y.paidAt.localeCompare(x.paidAt)||y.id-x.id);
 L.innerHTML=s.length?s.map(b=>`<div class="item" data-b="${b.id}" style="cursor:pointer"><div><b>🏪 ${esc(b.store||t("noStore"))}</b><br><small>💰 ${fdt(b.paidAt)} · 📦 ${b.count}</small></div><b style="white-space:nowrap">${fmt(b.total)}</b></div>`).join(""):`<p>${t("noBatches")}</p>`;
@@ -192,7 +193,7 @@ $("of").onsubmit=ev=>{ev.preventDefault();const lines=oLinesGet();if(!lines.leng
 const o={id:oEdit?oEdit.id:Date.now(),no:$("oNo").value.trim(),sup:$("oSup").value.trim(),placed:$("oPlaced").value,expected:$("oExp").value,status:$("oStatus").value,notes:$("oNotes").value.trim(),lines};
 if(oEdit)Object.assign(oEdit,o);else orders.push(o);saveO();
 if(o.status==="received"&&oPrev!=="received"&&confirm(t("logAsk"))){let k=0;
-lines.forEach(l=>{data.push({id:Date.now()+(k++),name:l.name,size:l.size,qty:l.qty,unit:l.unit,price:l.price,date:today(),order:o.no})});save();render();alert(t("logged").replace("%n",k))}
+lines.forEach(l=>{data.push({id:Date.now()+(k++),name:l.name,size:l.size,qty:l.qty,unit:l.unit,price:l.price,date:today(),at:nowLocal(),order:o.no})});save();render();alert(t("logged").replace("%n",k))}
 renderO();oShow(0)};
 function renderO(){const f=$("oFilter").value||"all";
 $("supList").innerHTML=[...new Set(orders.map(o=>o.sup).filter(Boolean))].sort().map(n=>`<option value="${esc(n)}">`).join("");
