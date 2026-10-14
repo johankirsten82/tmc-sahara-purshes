@@ -277,7 +277,7 @@ $("oCsv").onclick=()=>{const q=v=>`"${String(v??"").replace(/"/g,'""')}"`;const 
 orders.forEach(o=>o.lines.forEach((l,i)=>{const r=AL.lines[o.id+"|"+i]||{};rows.push([o.no,o.sup,o.status,o.placed,o.expected,l.name,l.size,l.qty,l.unit,l.price,l.qty*l.price,oTot(o),cur,o.notes,o.reqBy||"",r.b||0,r.rem||0,l.st||r.st||""])}));
 const b=new Blob(["\ufeff"+rows.map(r=>r.map(q).join(",")).join("\r\n")],{type:"text/csv"});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="orders-"+today()+".csv";a.click();markExport()};
 applyLang();reset();
-if("serviceWorker"in navigator)navigator.serviceWorker.register("sw.js");
+if("serviceWorker"in navigator){let _rl=false;const _hc=!!navigator.serviceWorker.controller;navigator.serviceWorker.register("sw.js",{updateViaCache:"none"}).then(r=>{r.update();document.addEventListener("visibilitychange",()=>{if(!document.hidden)r.update()})});navigator.serviceWorker.addEventListener("controllerchange",()=>{if(_hc&&!_rl){_rl=true;location.reload()}})}
 
 // ---- Favourites / last price / monthly xlsx ----
 let pins=JSON.parse(localStorage.pa_pins||"[]");
