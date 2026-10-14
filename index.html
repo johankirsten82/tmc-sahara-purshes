@@ -40,12 +40,12 @@ textarea{font-size:16px;width:100%;min-height:70px;border:1px solid #cbd5e1;bord
 <div id="hist" style="display:none"><div class="card" id="hList"></div><div class="card"><button type="button" id="hCsvAll" data-t="exportAll" style="margin-top:0"></button><button type="button" class="sec" id="hUndo" data-t="undoLast" style="color:#b91c1c"></button><button type="button" class="sec" id="hBack" data-t="back"></button></div></div>
 <div id="mainv">
 <div class="card"><form id="f">
-<label data-t="item"></label><div class="pick"><input id="name" required autocomplete="off"><div class="sug" id="sug"></div></div><div style="display:flex;justify-content:space-between;align-items:center;gap:6px"><small id="lastHint" style="color:#666"></small><button type="button" id="pinBtn" class="sec" style="width:auto;min-height:auto;margin:2px 0;padding:4px 10px">☆</button></div>
+<label data-t="item"></label><div class="pick"><input id="name" required autocomplete="off"><div class="sug" id="sug"></div></div><div style="display:flex;justify-content:space-between;align-items:center;gap:6px"><small id="lastHint" style="color:#666"></small></div>
 <div class="row"><div><label data-t="qty"></label><input id="qty" type="number" step="any" min="0" inputmode="decimal" required></div>
 <div><label data-t="unit"></label><select id="unit"></select></div></div>
 <input id="cunit" style="display:none;margin-top:8px">
 <label data-t="size"></label><input id="size" autocomplete="off">
-<label data-t="forOrder"></label><select id="forOrd"></select><small id="ordHint" style="display:block;color:#0f766e;font-weight:600;margin-top:4px"></small>
+<select id="forOrd" style="display:none" aria-hidden="true"></select><small id="ordHint" style="display:block;color:#0f766e;font-weight:600;margin-top:4px"></small>
 <div class="row"><div><label data-t="price"></label><input id="price" type="number" step="any" min="0" inputmode="decimal" required></div></div>
 <div class="tot"><span data-t="line"></span><b id="line">0</b></div>
 <button id="save" data-t="add"></button><button type="button" class="sec" id="cancel" style="display:none" data-t="cancel"></button>
@@ -174,7 +174,7 @@ window.del=id=>{const e=data.find(x=>String(x.id)===String(id));if(!e)return;del
 document.addEventListener("click",ev=>{if(ev.target.closest("#blRm")){const ids=data.filter(isBlank).map(e=>e.id);delLines(ids,t("blankDone").replace("%n",ids.length))}});
 $("f").onsubmit=ev=>{ev.preventDefault();const unit=$("unit").value==="__c"?($("cunit").value.trim()||"-"):$("unit").value;
 const old=editId?data.find(x=>x.id===editId):null,at=old?(old.at||old.date+"T00:00:00"):nowLocal();
-const e={id:editId||Date.now(),at,name:$("name").value.trim(),size:$("size").value.trim(),qty:+$("qty").value,unit,price:+$("price").value,date:at.slice(0,10)};if($("forOrd").value)e.forOrder=$("forOrd").value;if(old&&old.order)e.order=old.order;if(old&&old.sLine&&e.forOrder===old.forOrder&&String(old.sLine).split("|")[0]===String(e.forOrder))e.sLine=old.sLine;
+const e={id:editId||Date.now(),at,name:$("name").value.trim(),size:$("size").value.trim(),qty:+$("qty").value,unit,price:+$("price").value,date:at.slice(0,10)};if(old&&old.sLine&&old.forOrder)e.forOrder=old.forOrder;if(old&&old.order)e.order=old.order;if(old&&old.sLine&&e.forOrder===old.forOrder&&String(old.sLine).split("|")[0]===String(e.forOrder))e.sLine=old.sLine;
 if(editId)data=data.map(x=>x.id===editId?e:x);else data.push(e);save();
 const c=findCat(e.name);if(c){c.price=e.price;c.unit=e.unit;c.size=e.size;saveCat()}else if(e.name&&(auto||confirm(t("askSave").replace("%s",e.name)))){cat.push({name:e.name,unit:e.unit,price:e.price,size:e.size});saveCat()}
 reset();render()};
@@ -305,7 +305,7 @@ lines.forEach(l=>{data.push({id:Date.now()+(k++),name:l.name,size:l.size,qty:l.q
 renderO();oShow(0)};
 function renderO(){const f=$("oFilter").value||"all",AL=tmcAlloc(orders,allEntries());
 $("reqList").innerHTML=[...new Set(orders.map(o=>o.reqBy).filter(Boolean))].sort().map(n=>`<option value="${esc(n)}">`).join("");$("supList").innerHTML=[...new Set(orders.map(o=>o.sup).filter(Boolean))].sort().map(n=>`<option value="${esc(n)}">`).join("");
-const s=orders.filter(o=>f==="all"||(f==="overdue"?isOD(o):o.status===f)).sort((a,b)=>b.placed.localeCompare(a.placed)||b.id-a.id);
+const s=orders.filter(o=>f==="all"||(f==="overdue"?isOD(o):o.status===f)).sort((a,b)=>((a.status||"pending")==="pending"?0:1)-((b.status||"pending")==="pending"?0:1)||String(a.placed||"").localeCompare(String(b.placed||""))||a.id-b.id);
 $("oItems").innerHTML=s.length?s.map(o=>`<div class="item ${isOD(o)?"od":""}" data-id="${o.id}"><div><b>${esc(o.no)}</b><span class="badge b-${o.status}">${t("st_"+o.status)}</span>${isOD(o)?`<span class="badge b-overdue">${t("overdue")}</span>`:""}<br><small>${o.sup?"🏪 "+esc(o.sup)+" · ":""}${o.reqBy?"🙋 "+esc(o.reqBy)+" · ":""}📅 ${fdate(o.placed)}${o.expected?" → 🚚 "+fdate(o.expected):""}</small><br><small>📦 ${o.lines.length} · ${esc(t("lines"))}</small>${oProg(o,AL)}</div><b style="white-space:nowrap">${fmt(oTot(o))}</b></div>`).join("")+`<div class="tot" style="margin-top:8px"><span>${t("total")}</span><b>${fmt(s.reduce((a,o)=>a+oTot(o),0))}</b></div>`:`<p>${t("noOrders")}</p>`;renderOut(AL)}
 $("oItems").onclick=ev=>{const ac=ev.target.closest("[data-act]");if(ac){ev.stopPropagation();oAct(ac.dataset.act,ac.dataset.o,ac.dataset.i);return}const d=ev.target.closest("[data-id]");if(d)oOpen(orders.find(o=>o.id==d.dataset.id))};
 function renderExtra(){$("catList").innerHTML=cat.map(c=>`<option value="${esc(c.name)}">`).join("");$("unitList").innerHTML=UNITS.map(u=>`<option value="${u}">`).join("");
@@ -324,7 +324,7 @@ function savePins(){localStorage.pa_pins=JSON.stringify(pins)}
 function favList(){const cnt={};allEntries().forEach(e=>{if(!String(e.name||"").trim())return;cnt[e.name]=(cnt[e.name]||0)+1});const top=Object.keys(cnt).filter(n=>!pins.includes(n)).sort((a,b)=>cnt[b]-cnt[a]||a.localeCompare(b));return pins.concat(top).slice(0,Math.max(8,pins.length))}
 function renderFav(){}
 function updPin(){if($("pinBtn"))$("pinBtn").style.display="none";return;const n=$("name").value.trim(),p=pins.includes(n);$("pinBtn").textContent=p?"★":"☆";$("pinBtn").title=t(p?"unpin":"pin");$("pinBtn").style.visibility=n?"":"hidden"}
-$("pinBtn").onclick=()=>{const n=$("name").value.trim();if(!n)return;pins=pins.includes(n)?pins.filter(x=>x!==n):pins.concat(n);savePins();renderFav()};
+if($("pinBtn"))$("pinBtn").onclick=()=>{const n=$("name").value.trim();if(!n)return;pins=pins.includes(n)?pins.filter(x=>x!==n):pins.concat(n);savePins();renderFav()};
 function lastOf(n,sz){const A=allEntries().filter(e=>e.name.toLowerCase()===n.toLowerCase());const s=sz?A.filter(e=>(e.size||"")===sz):[];const B=(s.length?s:A).sort((a,b)=>(b.at||b.date).localeCompare(a.at||a.date)||(+b.id||0)-(+a.id||0));return B[0]}
 function lastFill(){const n=$("name").value.trim();let h="";if(n&&!editId){const e=lastOf(n,$("size").value.trim());if(e){$("price").value=e.price;setUnit(e.unit);if(!$("size").value&&e.size)$("size").value=e.size;h=t("lastP").replace("%p",fmt(e.price)+" / "+e.unit).replace("%d",fdate(e.date));calc()}}$("lastHint").textContent=h;updPin()}
 function chooseItem(n){if(findCat(n))pickItem(n);else{$("name").value=n;$("sug").style.display="none"}lastFill();$("qty").focus()}
