@@ -67,7 +67,8 @@ textarea{font-size:16px;width:100%;min-height:70px;border:1px solid #cbd5e1;bord
 <label data-t="supplier"></label><input id="oSup" list="supList" autocomplete="off"><datalist id="supList"></datalist><label data-t="reqBy"></label><input id="oReq" list="reqList" autocomplete="off"><datalist id="reqList"></datalist>
 <div class="row"><div><label data-t="placed"></label><input id="oPlaced" type="date" required></div><div><label data-t="expected"></label><input id="oExp" type="date"></div></div>
 <label data-t="status"></label><select id="oStatus"></select>
-<label data-t="lines"></label><div id="oLines"></div><button type="button" class="sec" id="oAddLine" data-t="addLine"></button>
+<label data-t="lines"></label><div id="oLines"></div><button type="button" class="sec" id="oAddLine" data-t="addLine"></button><div class="row"><button type="button" class="sec" id="plOpen"></button><button type="button" class="sec" id="plFileB"></button></div><input type="file" id="plFile" accept=".txt,.csv,text/plain,text/csv" style="display:none">
+<div id="plBox" style="display:none;border:1px dashed #999;padding:8px;border-radius:8px;margin-top:6px"><small id="plHelp"></small><textarea id="plText" rows="6" style="width:100%"></textarea><button type="button" class="sec" id="plParse"></button><div id="plPrev" style="overflow:auto"></div><button type="button" id="plAdd" style="display:none"></button><button type="button" class="sec" id="plClose"></button></div>
 <div class="tot" style="margin-top:10px"><span data-t="orderTotal"></span><span class="big" id="oTotal"></span></div>
 <label data-t="notes"></label><textarea id="oNotes"></textarea>
 <button data-t="saveOrder"></button><button type="button" class="sec" id="oCancel" data-t="cancel"></button><button type="button" class="sec" id="oDel" data-t="delBtn" style="color:#b91c1c"></button>
@@ -387,4 +388,50 @@ addEventListener("online",syncNow);document.addEventListener("visibilitychange",
 syncMark();if(on())syncNow();status();
 })();
 
+</script><script>
+(function(){
+const PL={en:{open:"📋 Paste list",file:"📄 Import .txt/.csv file",help:"One line per item, e.g. Cement, 10, bag — Cement 10 bag — 10 x Cement — 10 bag Cement",parse:"Read list",add:"Add to order",close:"Close",item:"Item",size:"Size",qty:"Qty",unit:"Unit",m:"Match",ok:"✓ found",sug:"≈ check",nw:"new",none:"No lines found"},
+fr:{open:"📋 Coller une liste",file:"📄 Importer un fichier .txt/.csv",help:"Une ligne par article, ex. Ciment, 10, sac — Ciment 10 sac — 10 x Ciment — 10 sac Ciment",parse:"Lire la liste",add:"Ajouter à la commande",close:"Fermer",item:"Article",size:"Taille",qty:"Qté",unit:"Unité",m:"Trouvé",ok:"✓ trouvé",sug:"≈ vérifier",nw:"nouveau",none:"Aucune ligne trouvée"},
+ar:{open:"📋 لصق قائمة",file:"📄 استيراد ملف ‎.txt/.csv",help:"سطر لكل صنف، مثل: Cement, 10, bag أو 10 x Cement",parse:"قراءة القائمة",add:"إضافة إلى الطلب",close:"إغلاق",item:"الصنف",size:"المقاس",qty:"الكمية",unit:"الوحدة",m:"مطابقة",ok:"✓ موجود",sug:"≈ تحقق",nw:"جديد",none:"لا توجد أسطر"}};
+const P=k=>(PL[lang]||PL.en)[k],$$=id=>document.getElementById(id),E=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const N=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9\u0600-\u06ff]+/g," ").trim();
+const UB="pcs pc piece pieces bag bags sac sacs kg g l lt ltr litre liter litres liters m meter metre box boxes roll rolls set sets pair pairs ton tons carton cartons drum drums sheet sheets length lengths bundle bundles tin tins can cans bottle bottles packet packets pack ea each unit units".split(" ");
+function isUnit(w){w=N(w);return !!w&&(UB.includes(w)||cat.some(c=>N(c.unit)===w))}
+const isNum=s=>/^\d+([.,]\d+)?$/.test(String(s).trim());
+const num=s=>+String(s).replace(",",".");
+function lev(a,b){const m=a.length,n=b.length;let p=Array.from({length:n+1},(_,i)=>i);for(let i=1;i<=m;i++){const c=[i];for(let j=1;j<=n;j++)c[j]=Math.min(p[j]+1,c[j-1]+1,p[j-1]+(a[i-1]===b[j-1]?0:1));p=c}return p[n]}
+function match(name){const n=N(name);if(!n)return{st:"nw"};let c=cat.find(x=>N(x.name)===n);if(c)return{st:"ok",c};let best=null,bs=0;cat.forEach(x=>{const k=N(x.name);let s=1-lev(n,k)/Math.max(n.length,k.length);if(k.length>3&&n.length>3&&(k.includes(n)||n.includes(k)))s=Math.max(s,.8);if(s>bs){bs=s;best=x}});return bs>=.7?{st:"sug",c:best}:{st:"nw"}}
+function parseLine(raw){let s=raw.replace(/^\s*([-*•]|\d+[.)])\s+/,"").trim();if(!s)return null;
+let item="",size="",qty=null,unit="";
+const parts=s.split(/\t|;|,(?!\d)/).map(x=>x.trim()).filter(Boolean);
+if(parts.length>=2){const rest=[];parts.forEach(p=>{if(qty===null&&/^[x×]\s*\d+([.,]\d+)?$/i.test(p))qty=num(p.replace(/^[x×]\s*/i,""));else if(qty===null&&isNum(p))qty=num(p);else{const m=p.match(/^(\d+(?:[.,]\d+)?)\s*([a-zA-Z]+)$/);if(qty===null&&m&&isUnit(m[2])){qty=num(m[1]);unit=m[2]}else if(!unit&&qty!==null&&isUnit(p))unit=p;else rest.push(p)}});item=rest.shift()||"";size=rest.join(" ")}
+else{let w=s.split(/\s+/);let m;
+if((m=s.match(/^(\d+(?:[.,]\d+)?)\s*[x×*]\s*(.+)$/i))){qty=num(m[1]);w=m[2].split(/\s+/);if(w.length>1&&isUnit(w[0]))unit=w.shift();item=w.join(" ")}
+else if(isNum(w[0])&&w.length>1){qty=num(w.shift());if(w.length>1&&isUnit(w[0]))unit=w.shift();item=w.join(" ")}
+else{let i=w.length-1;if(i>0&&isUnit(w[i])&&isNum(w[i-1])){unit=w[i];qty=num(w[i-1]);w=w.slice(0,i-1)}else if(i>0&&isNum(w[i])){qty=num(w[i]);w=w.slice(0,i)}else if(i>0&&(m=w[i].match(/^x?(\d+(?:[.,]\d+)?)([a-zA-Z]*)$/i))&&(!m[2]||isUnit(m[2]))){qty=num(m[1]);unit=m[2];w=w.slice(0,i)}item=w.join(" ")}}
+if(!item)return null;
+if(!size){const ni=N(item),pc=cat.filter(c=>{const k=N(c.name);return k.length>2&&ni.startsWith(k+" ")}).sort((a,b)=>b.name.length-a.name.length)[0];if(pc){size=item.slice(item.length-(ni.length-N(pc.name).length)).trim();item=pc.name}}
+if(qty===null&&/^(item|items|article|articles|nom|name|produit|description|الصنف|qty|quantity|quantit)/i.test(N(item)))return null;
+const mt=match(item);if(mt.c&&mt.st==="ok")item=mt.c.name;
+if(!unit)unit=mt.c&&mt.c.unit||"pcs";
+return{name:item,size,qty:qty===null?1:qty,unit,st:mt.st,sug:mt.c?mt.c.name:"",price:mt.c&&mt.c.price||0}}
+let rows=[];
+window.tmcParseList=t=>String(t||"").split(/\r?\n/).map(parseLine).filter(Boolean);
+function flag(r){return r.st==="ok"?`<span style="color:#15803d">${P("ok")}</span>`:r.st==="sug"?`<button type="button" class="sec plS" style="width:auto;min-height:auto;margin:0;padding:2px 6px">${P("sug")}: ${E(r.sug)}</button>`:`<span style="color:#b45309">${P("nw")}</span>`}
+function draw(){const b=$$("plPrev");if(!rows.length){b.innerHTML=`<small>${P("none")}</small>`;$$("plAdd").style.display="none";return}
+b.innerHTML=`<table style="width:100%;font-size:13px"><tr><th>${P("item")}</th><th>${P("size")}</th><th>${P("qty")}</th><th>${P("unit")}</th><th>${P("m")}</th><th></th></tr>`+rows.map((r,i)=>`<tr data-i="${i}"><td><input class="pN" list="catList" value="${E(r.name)}"></td><td><input class="pS" value="${E(r.size)}" style="width:60px"></td><td><input class="pQ" type="number" step="any" value="${r.qty}" style="width:55px"></td><td><input class="pU" list="unitList" value="${E(r.unit)}" style="width:55px"></td><td>${flag(r)}</td><td><button type="button" class="sec pX" style="width:auto;min-height:auto;margin:0;padding:2px 8px">✕</button></td></tr>`).join("")+`</table>`;
+b.querySelectorAll("tr[data-i]").forEach(tr=>{const r=rows[+tr.dataset.i],q=s=>tr.querySelector(s);
+q(".pN").onchange=()=>{const mt=match(q(".pN").value);r.name=mt.st==="ok"?mt.c.name:q(".pN").value.trim();r.st=mt.st;r.sug=mt.c?mt.c.name:"";if(mt.c){r.unit=mt.c.unit||r.unit;r.price=mt.c.price||0}draw()};
+q(".pS").oninput=()=>r.size=q(".pS").value;q(".pQ").oninput=()=>r.qty=+q(".pQ").value||0;q(".pU").oninput=()=>r.unit=q(".pU").value;
+q(".pX").onclick=()=>{rows.splice(+tr.dataset.i,1);draw()};const s=q(".plS");if(s)s.onclick=()=>{const c=cat.find(x=>x.name===r.sug);r.name=r.sug;r.st="ok";if(c){r.unit=c.unit||r.unit;r.price=c.price||0}draw()}});
+$$("plAdd").style.display=""}
+function labels(){$$("plOpen").textContent=P("open");$$("plFileB").textContent=P("file");$$("plHelp").textContent=P("help");$$("plParse").textContent=P("parse");$$("plAdd").textContent=P("add");$$("plClose").textContent=P("close");$$("plText").placeholder="Cement, 10, bag\n10 x Nails\nBolt M12, 20, pcs";if(rows.length)draw()}
+labels();setInterval(()=>{if($$("plOpen").textContent!==P("open"))labels()},800);
+$$("plOpen").onclick=()=>{$$("plBox").style.display="";labels()};$$("plClose").onclick=()=>{$$("plBox").style.display="none";rows=[];$$("plPrev").innerHTML="";$$("plText").value="";$$("plAdd").style.display="none"};
+$$("plParse").onclick=()=>{rows=tmcParseList($$("plText").value);draw()};
+$$("plFileB").onclick=()=>$$("plFile").click();
+$$("plFile").onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{$$("plBox").style.display="";$$("plText").value=rd.result;rows=tmcParseList(rd.result);labels();draw()};rd.readAsText(f);e.target.value=""};
+$$("plAdd").onclick=()=>{[...$$("oLines").children].forEach(d=>{if(!d.querySelector(".lName").value.trim()&&!d.querySelector(".lQty").value)d.remove()});rows.filter(r=>r.name).forEach(r=>{lineRow({name:r.name,size:r.size,qty:r.qty,unit:r.unit||"pcs",price:r.price||""})});
+oCalc();$$("plClose").onclick()};
+})();
 </script></body></html>
