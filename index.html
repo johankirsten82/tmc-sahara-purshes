@@ -39,7 +39,7 @@ textarea{font-size:16px;width:100%;min-height:70px;border:1px solid #cbd5e1;bord
 <div class="card" id="clist"></div><div class="card"><label><input type="checkbox" id="autosave" style="width:auto;min-height:auto"> <span data-t="autoLbl"></span></label><button type="button" id="impBtn" data-t="imp"></button><input type="file" id="impFile" accept=".csv,.xlsx,.xls,.ods" style="display:none"><button type="button" class="sec" id="resetCat" data-t="resetCat"></button><button type="button" class="sec" id="back" data-t="back"></button></div></div>
 <div id="hist" style="display:none"><div class="card" id="hList"></div><div class="card"><button type="button" id="hCsvAll" data-t="exportAll" style="margin-top:0"></button><button type="button" class="sec" id="hUndo" data-t="undoLast" style="color:#b91c1c"></button><button type="button" class="sec" id="hBack" data-t="back"></button></div></div>
 <div id="mainv">
-<div class="card" id="favCard"><h3 data-t="favs" style="margin:0 0 6px"></h3><div id="favs" style="display:flex;flex-wrap:wrap;gap:6px"></div></div><div class="card"><form id="f">
+<div class="card"><form id="f">
 <label data-t="item"></label><div class="pick"><input id="name" required autocomplete="off"><div class="sug" id="sug"></div></div><div style="display:flex;justify-content:space-between;align-items:center;gap:6px"><small id="lastHint" style="color:#666"></small><button type="button" id="pinBtn" class="sec" style="width:auto;min-height:auto;margin:2px 0;padding:4px 10px">☆</button></div>
 <div class="row"><div><label data-t="qty"></label><input id="qty" type="number" step="any" min="0" inputmode="decimal" required></div>
 <div><label data-t="unit"></label><select id="unit"></select></div></div>
@@ -322,8 +322,8 @@ if("serviceWorker"in navigator){let _rl=false;const _hc=!!navigator.serviceWorke
 let pins=LJ("pa_pins",[]);
 function savePins(){localStorage.pa_pins=JSON.stringify(pins)}
 function favList(){const cnt={};allEntries().forEach(e=>{if(!String(e.name||"").trim())return;cnt[e.name]=(cnt[e.name]||0)+1});const top=Object.keys(cnt).filter(n=>!pins.includes(n)).sort((a,b)=>cnt[b]-cnt[a]||a.localeCompare(b));return pins.concat(top).slice(0,Math.max(8,pins.length))}
-function renderFav(){const f=favList();$("favs").innerHTML=f.length?f.map(n=>`<button type="button" class="sec chip" data-n="${esc(n)}" style="width:auto;min-height:auto;margin:0;padding:6px 12px;border-radius:16px">${pins.includes(n)?"★ ":""}${esc(n)}</button>`).join(""):`<small>${t("noFav")}</small>`;$("favs").querySelectorAll(".chip").forEach(b=>b.onclick=()=>chooseItem(b.dataset.n));updPin()}
-function updPin(){const n=$("name").value.trim(),p=pins.includes(n);$("pinBtn").textContent=p?"★":"☆";$("pinBtn").title=t(p?"unpin":"pin");$("pinBtn").style.visibility=n?"":"hidden"}
+function renderFav(){}
+function updPin(){if($("pinBtn"))$("pinBtn").style.display="none";return;const n=$("name").value.trim(),p=pins.includes(n);$("pinBtn").textContent=p?"★":"☆";$("pinBtn").title=t(p?"unpin":"pin");$("pinBtn").style.visibility=n?"":"hidden"}
 $("pinBtn").onclick=()=>{const n=$("name").value.trim();if(!n)return;pins=pins.includes(n)?pins.filter(x=>x!==n):pins.concat(n);savePins();renderFav()};
 function lastOf(n,sz){const A=allEntries().filter(e=>e.name.toLowerCase()===n.toLowerCase());const s=sz?A.filter(e=>(e.size||"")===sz):[];const B=(s.length?s:A).sort((a,b)=>(b.at||b.date).localeCompare(a.at||a.date)||(+b.id||0)-(+a.id||0));return B[0]}
 function lastFill(){const n=$("name").value.trim();let h="";if(n&&!editId){const e=lastOf(n,$("size").value.trim());if(e){$("price").value=e.price;setUnit(e.unit);if(!$("size").value&&e.size)$("size").value=e.size;h=t("lastP").replace("%p",fmt(e.price)+" / "+e.unit).replace("%d",fdate(e.date));calc()}}$("lastHint").textContent=h;updPin()}
