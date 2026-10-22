@@ -556,7 +556,7 @@ $("oCsv").onclick=()=>{const q=v=>`"${String(v??"").replace(/"/g,'""')}"`;const 
 orders.forEach(o=>o.lines.forEach((l,i)=>{const r=AL.lines[o.id+"|"+i]||{};rows.push([o.no,o.sup,o.status,o.placed,o.expected,l.name,l.size,l.qty,l.unit,l.price,lt(Object.assign({cur:cur},l)),oTot(o),cur,o.notes,o.reqBy||"",r.b||0,r.rem||0,l.st||r.st||""])}));
 const b=new Blob(["\ufeff"+rows.map(r=>r.map(q).join(",")).join("\r\n")],{type:"text/csv"});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="orders-"+today()+".csv";a.click();markExport()};
 applyLang();reset();
-(function(){var APP=window.APP_VER=73,REG=null,READY=false,LATEST=+localStorage.pa_latest||APP,_rl=false,CHK=0;
+(function(){var APP=window.APP_VER=74,REG=null,READY=false,LATEST=+localStorage.pa_latest||APP,_rl=false,CHK=0;
 function vis(el){return !!(el&&el.isConnected&&(el.offsetWidth||el.offsetHeight||el.getClientRects().length)&&getComputedStyle(el).display!=="none")}
 function busy(){try{if(window.drActive&&drActive())return true}catch(e){}var a=document.activeElement;if(a&&a!==document.body&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)&&!a.closest("#updBar"))return true;
 var D=document.querySelectorAll("#epDlg,#shDlg,#slDlg,#slV,.sldlg,[id$='Dlg']");for(var i=0;i<D.length;i++)if(vis(D[i]))return true;
@@ -909,9 +909,13 @@ refresh();
 })();</script><script>(function(){
 window.fmtC=(n,c)=>fmtRaw(n,c);
 const CK=c=>c==="LYD"?"cashL":"cash";const mvC=m=>m&&m.cur==="LYD"?"LYD":"FCFA";
-const lastCB=(c="FCFA")=>batches.filter(b=>b&&b[CK(c)]).sort((a,b)=>String(b.paidAt).localeCompare(String(a.paidAt)))[0];
-const bf=(c="FCFA")=>{const b=lastCB(c);return b&&!b[CK(c)].returned?+b[CK(c)].bal||0:0};
-const openMv=(c="FCFA")=>c==="LYD"?[]:cash.filter(m=>m&&m.type==="give"&&!m.bid&&mvC(m)==="FCFA");
+const cLim=()=>{const d=new Date(Date.now()+3e5);return new Date(d-d.getTimezoneOffset()*6e4).toISOString().slice(0,19)};
+const effT=s=>{s=String(s||"");const L=cLim();if(s<=L)return s;let m="";batches.forEach(x=>{const q=String(x&&x.paidAt||"");if(q<=L&&q>m)m=q});return m||L};
+const cbSort=(c,L)=>batches.filter(b=>b&&b[CK(c)]).map((b,i)=>({b,i,t:effT(b.paidAt)})).sort((x,y)=>x.t<y.t?-1:x.t>y.t?1:x.i-y.i);
+const lastCB=(c="FCFA")=>{const a=cbSort(c);return a.length?a[a.length-1].b:undefined};
+window.cashEffT=effT;
+const bf=(c="FCFA")=>{if(c!=="FCFA")return 0;const a=cbSort(c);if(!a.length)return 0;let ri=-1;a.forEach((x,i)=>{if(x.b.cash.returned)ri=i});const lt=a[a.length-1].t;let v=0;for(let i=ri+1;i<a.length;i++)v-=rnd(sumM(a[i].b.entries||[]).FCFA,c);const t0=ri>=0?a[ri].t:"";cash.forEach(m=>{if(m&&m.type==="give"&&mvC(m)==="FCFA"){const at=String(m.at||"");if((ri<0||at>t0)&&at<=lt)v+=+m.amount||0}});if(ri>=0&&ri===a.length-1)return 0;return rnd(v,c)};
+const openMv=(c="FCFA")=>{if(c==="LYD")return[];const lb=lastCB(c),lt=lb?effT(lb.paidAt):"";return cash.filter(m=>m&&m.type==="give"&&mvC(m)==="FCFA"&&String(m.at||"")>lt)};
 const rnd=(v,c)=>c==="LYD"?Math.round(v*1000)/1000:Math.round(v);
 function state(spent,c="FCFA"){const B=bf(c),G=openMv(c).reduce((a,m)=>a+(+m.amount||0),0),F=B+G;return{B,G,F,S:spent,R:rnd(F-spent,c)}}
 const spentNow=c=>sumM(data)[c||"FCFA"];
@@ -925,10 +929,12 @@ $("cmBody").innerHTML=blocks.map(({k,st})=>{const pct=st.F>0?st.R/st.F:0;const c
 const rem=st.R<0?t("cOver").replace("%x",fmtC(-st.R,k)):fmtC(st.R,k);
 return `<div class="cmblk ${cls}" data-cur="${k}">${blocks.length>1?`<div class="cmcur">${k==="LYD"?"🇱🇾 "+esc(t("curLYD")):"🇹🇩 FCFA"}</div>`:""}`+(full?`<div class="cmeq"><div>${esc(t("cFloat"))}<b>${fmtC(st.F,k)}</b></div><div>−</div><div>${esc(t("cSpent"))}<b>${fmtC(st.S,k)}</b></div><div>=</div><div class="cmrem">${esc(t("cRem"))}<b>${esc(rem)}</b></div></div>`:`<div class="cmeq"><div class="cmrem" style="flex:1">${esc(t("cRem"))}<b>${esc(rem)}</b></div></div>`)+`<div class="cmbar"><div style="width:${st.F>0?Math.max(0,Math.min(100,pct*100)):0}%"></div></div>`+(full&&(st.B||st.G)?`<div class="cmbf">${st.B?esc(t("cBF"))+": "+fmtC(st.B,k):""}${st.B&&st.G?" · ":""}${st.G?esc(t("cGiven"))+": "+fmtC(st.G,k)+" ("+openMv(k).length+")":""}</div>`:"")+(mgr&&st.B&&lastCB(k)?`<button type="button" class="sec mini cret" data-ret="${k}">↩ ${esc(t("cRetB"))}</button>`:"")+`</div>`}).join("");
 c.classList.toggle("red",anyRed);c.classList.toggle("amber",!anyRed&&anyAmb)}
-window.cashMeter=meter;window.cashRecalc=function(){const ids=new Set(batches.map(b=>String(b.id)));let cc=0;cash.forEach(m=>{if(m&&m.bid&&m.bid!==1&&!ids.has(String(m.bid))){delete m.bid;cc++}});if(cc)saveC();
-["FCFA"].forEach(cu=>{const K=CK(cu);let prev=null;batches.filter(b=>b&&b[K]).sort((a,b)=>String(a.paidAt).localeCompare(String(b.paidAt))).forEach(b=>{const c=b[K],sp=rnd(sumM(b.entries||[])[cu],cu),bfv=prev?(prev.returned?0:+prev.bal||0):(+c.bf||0),fl=rnd(bfv+(+c.given||0),cu),bal=rnd(fl-sp,cu);
-if(c.spent!==sp||c.bf!==bfv||c.float!==fl||c.bal!==bal||(c.returned&&c.returned.amount!==bal)){b[K]={...c,bf:bfv,float:fl,spent:sp,bal:bal};if(c.returned)b[K].returned={...c.returned,amount:bal}}prev=b[K]})});try{window.cashMeter&&cashMeter()}catch(e){}};
-const _r=render;render=function(){_r();try{meter()}catch(e){console.error(e)}try{missUI()}catch(e){}};
+window.cashMeter=meter;window.cashRecalc=function(){if(window._cRc)return;window._cRc=1;try{["FCFA"].forEach(cu=>{const K=CK(cu),a=cbSort(cu);let prev=null,pt=null,cc=0;const gv=cash.filter(m=>m&&m.type==="give"&&mvC(m)===cu);const bind={};
+a.forEach(x=>{const b=x.b,c=b[K];let g=0;gv.forEach(m=>{const at=String(m.at||"");if((pt===null||at>pt)&&at<=x.t){g+=+m.amount||0;bind[m.id]=b.id}});
+const sp=rnd(sumM(b.entries||[])[cu],cu),bfv=prev?(prev.returned?0:+prev.bal||0):0,gg=rnd(g,cu),fl=rnd(bfv+gg,cu),bal=rnd(fl-sp,cu);
+if(c.spent!==sp||c.bf!==bfv||c.given!==gg||c.float!==fl||c.bal!==bal||(c.returned&&c.returned.amount!==bal)){b[K]={...c,bf:bfv,given:gg,float:fl,spent:sp,bal:bal};if(c.returned)b[K].returned={...c.returned,amount:bal};window._cCh=1}prev=b[K];pt=x.t});
+gv.forEach(m=>{const nb=bind[m.id];if(nb){if(String(m.bid)!==String(nb)){m.bid=nb;cc++}}else if(m.bid){delete m.bid;cc++}});if(cc)saveC()})}catch(e){console.error(e)}window._cRc=0;try{window.cashMeter&&cashMeter()}catch(e){}};
+const _r=render;render=function(){_r();try{window._cCh=0;cashRecalc();if(window._cCh){localStorage.pa_batches=JSON.stringify(batches);window._cCh=0;if(window.syncMark)syncMark()}}catch(e){console.error(e)}try{meter()}catch(e){console.error(e)}try{missUI()}catch(e){}};
 setTimeout(()=>{try{const I=v=>typeof v==="number"&&v!==Math.round(v);let ch=0;batches.forEach(b=>{const T=sumM(b.entries||[]);if(I(b.total)&&b.total!==T.FCFA){b.total=T.FCFA;ch=1}if(b.cash&&["bf","given","float","spent","bal"].some(k=>I(b.cash[k])))ch=1;(b.entries||[]).forEach(e=>{const c=canonName(e.name);if(e&&c!==e.name){e.name=c;ch=1}})});if(ch)saveB();let cd=0;data.forEach(e=>{const c=canonName(e.name);if(c!==e.name){e.name=c;cd=1}});if(cd)save();let co=0;orders.forEach(o=>(o.lines||[]).forEach(l=>{const c=canonName(l.name);if(c!==l.name){l.name=c;co=1}}));if(co)saveO()}catch(e){console.error(e)}},1500);
 $("list").addEventListener("input",ev=>{if(!ev.target.matches(".peq,.pep"))return;const s={FCFA:0,LYD:0};document.querySelectorAll("#list .pe").forEach(r=>{const q=r.querySelector(".peq"),p=r.querySelector(".pep"),e=data.find(x=>String(x.id)===r.dataset.id);s[CUR(e)]+=(+(q&&q.value)||0)*(+(p&&p.value)||0)});meter(s)});
 $("cashCard").addEventListener("click",ev=>{const b=ev.target.closest("[data-ret]");if(!b)return;const k=b.dataset.ret,K=CK(k),lb=lastCB(k);if(!lb||lb[K].returned)return;if(!confirm(t("cRetAsk").replace("%x",fmtC(lb[K].bal,k))))return;lb[K]={...lb[K],returned:{at:nowLocal(),by:localStorage.pa_user||"",amount:lb[K].bal}};saveB();meter();renderCL()});
