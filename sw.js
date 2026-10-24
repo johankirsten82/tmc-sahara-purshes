@@ -1,4 +1,4 @@
-const C="pa-v84",F=["./","index.html","manifest.json","icons/icon-192.png","icons/icon-512.png","icons/apple-touch-icon.png","icons/favicon-32.png","icons/icon.svg","icons/icon-maskable-512.png","icons/qr.png"];
+const C="pa-v85",F=["./","index.html","manifest.json","icons/icon-192.png","icons/icon-512.png","icons/apple-touch-icon.png","icons/favicon-32.png","icons/icon.svg","icons/icon-maskable-512.png","icons/qr.png"];
 self.addEventListener("install",e=>{e.waitUntil(caches.open(C).then(c=>c.addAll(F.map(u=>new Request(u,{cache:"reload"}))).then(()=>c.add("https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js").catch(()=>{}))));if(!self.registration.active)self.skipWaiting()});
 self.addEventListener("message",e=>{if(e.data==="skip")self.skipWaiting()});
 self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C&&/^pa-v\d+$/.test(x)).map(x=>caches.delete(x)))));self.clients.claim()});
