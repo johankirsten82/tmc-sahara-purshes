@@ -1,6 +1,6 @@
 {
- "name": "TMC Sahara Purshes",
- "short_name": "TMC Purshes",
+ "name": "TMC Sahara Purchases",
+ "short_name": "TMC Purchases",
  "start_url": "./index.html",
  "scope": "./",
  "display": "standalone",
