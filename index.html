@@ -1,12 +1,12 @@
 <!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0f766e"><link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f766e"><link rel="manifest" href="manifest.json?v=97">
 <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png?v=76"><link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png?v=76"><link rel="icon" type="image/svg+xml" href="icons/icon.svg?v=76"><meta name="apple-mobile-web-app-capable" content="yes">
 <script>/* v89 Admin fix rule: staff ADD, only the Admin fixes a saved record. Team-code phones count as staff (the server refuses their fixes). */window.canFix=function(){var P=window.PERM||{};if(!P.admin)return false;if((localStorage.pa_sycode||"").trim()&&(localStorage.pa_syurl||"").trim())return false;return true};window.fixOnlyMsg=function(){try{sToast(t("fixOnly"))}catch(e){alert("Only the Admin can fix a saved record.")}};</script><script id="cfg">window.CONFIG=/*CONFIG*/{
  "APP_ID": "pa",
  "NAME": "TMC Sahara Purchases",
  "SHORT": "TMC Purchases",
- "VER": 96,
+ "VER": 97,
  "COLOR": "#0f766e",
  "REPORT_COLOR": "#1B7F3B",
  "COLOR_DARK": "#115e59",
@@ -657,7 +657,7 @@ $("oCsv").onclick=()=>{const q=v=>`"${String(v??"").replace(/"/g,'""')}"`;const 
 orders.forEach(o=>o.lines.forEach((l,i)=>{const r=AL.lines[o.id+"|"+i]||{};rows.push([o.no,o.sup,o.status,o.placed,o.expected,l.name,l.size,l.qty,l.unit,l.price,lt(Object.assign({cur:cur},l)),oTot(o),cur,o.notes,o.reqBy||"",r.b||0,r.rem||0,l.st||r.st||""])}));
 const b=new Blob(["\ufeff"+rows.map(r=>r.map(q).join(",")).join("\r\n")],{type:"text/csv"});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="orders-"+today()+".csv";a.click();markExport()};
 applyLang();reset();
-(function(){var APP=window.APP_VER=96,REG=null,READY=false,LATEST=+localStorage.pa_latest||APP,_rl=false,CHK=0;
+(function(){var APP=window.APP_VER=97,REG=null,READY=false,LATEST=+localStorage.pa_latest||APP,_rl=false,CHK=0;
 function vis(el){return !!(el&&el.isConnected&&(el.offsetWidth||el.offsetHeight||el.getClientRects().length)&&getComputedStyle(el).display!=="none")}
 function busy(){try{if(window.drActive&&drActive())return true}catch(e){}var a=document.activeElement;if(a&&a!==document.body&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)&&!a.closest("#updBar"))return true;
 var D=document.querySelectorAll("#epDlg,#shDlg,#slDlg,#slV,.sldlg,[id$='Dlg']");for(var i=0;i<D.length;i++)if(vis(D[i]))return true;

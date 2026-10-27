@@ -1,8 +1,8 @@
 {
- "id": "./?tmcapp=purchases2",
+ "id": "/tmc-sahara-purshes/?tmcapp=purchases3",
  "name": "TMC Sahara Purchases",
  "short_name": "TMC Purchases",
- "start_url": "./?tmcapp=purchases2",
+ "start_url": "./?tmcapp=purchases3",
  "scope": "./",
  "display": "standalone",
  "background_color": "#f1f5f9",
