@@ -1,5 +1,11 @@
-const C="pa-v97",F=["./","index.html","manifest.json","icons/icon-192.png","icons/icon-512.png","icons/apple-touch-icon.png","icons/favicon-32.png","icons/icon.svg","icons/icon-maskable-512.png","icons/qr.png"];
-self.addEventListener("install",e=>{e.waitUntil(caches.open(C).then(c=>c.addAll(F.map(u=>new Request(u,{cache:"reload"}))).then(()=>c.add("https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js").catch(()=>{}))));self.skipWaiting()});
-self.addEventListener("message",e=>{if(e.data==="skip")self.skipWaiting()});
-const CL=()=>caches.keys().then(k=>Promise.all(k.filter(x=>x!==C&&/^pa-/.test(x)).map(x=>caches.delete(x))));let CLd=0;self.addEventListener("activate",e=>{e.waitUntil(CL());e.waitUntil(self.clients.claim())});
-self.addEventListener("fetch",e=>{if(CLd<3&&e.request.mode==="navigate"){CLd++;e.waitUntil(CL())}const q=e.request;if(q.method!=="GET")return;const u=new URL(q.url);if(u.origin===location.origin&&!u.pathname.startsWith(new URL(self.registration.scope).pathname))return;if(u.origin===location.origin&&/manifest\.json$/.test(u.pathname)){e.respondWith(fetch(q,{cache:"no-store"}).then(res=>{if(res.ok){const c=res.clone();caches.open(C).then(x=>x.put("manifest.json",c))}return res}).catch(()=>caches.match("manifest.json",{ignoreSearch:true})));return}const nav=q.mode==="navigate"||(u.origin===location.origin&&/(\/|index\.html|sw\.js|manifest\.json)$/.test(u.pathname));if(nav&&u.origin===location.origin){e.respondWith(fetch(q,{cache:"no-store"}).then(res=>{if(res.ok){const c=res.clone();caches.open(C).then(x=>x.put(q.mode==="navigate"?"index.html":q,c))}return res}).catch(()=>(q.mode==="navigate"?caches.match("index.html"):caches.match(q,{ignoreSearch:true})).then(r=>r||caches.match(q,{ignoreSearch:true})).then(r=>r||caches.match("./"))));return}if(/er-api\.com|currency-api/.test(q.url))return;e.respondWith(caches.match(q,{ignoreSearch:true}).then(r=>r||fetch(q).then(res=>{if(u.hostname.includes("cdn.jsdelivr.net")&&res.ok){const c=res.clone();caches.open(C).then(x=>x.put(q,c))}return res})))});
+/* Moved: replaces the old TMC Purchases service worker at /tmc-sahara-purshes/.
+   It deletes the old pa-* caches, takes over open old pages, removes itself and reloads them,
+   so they show the Moved page from the network. It never touches saved phone data (local storage) (unsynced work stays for the new app). */
+self.addEventListener("install",function(e){self.skipWaiting()});
+self.addEventListener("activate",function(e){e.waitUntil(
+  caches.keys().then(function(k){return Promise.all(k.filter(function(x){return /^pa-/.test(x)}).map(function(x){return caches.delete(x)}))})
+  .then(function(){return self.clients.claim()})
+  .then(function(){return self.clients.matchAll({type:"window",includeUncontrolled:true})})
+  .then(function(cs){return self.registration.unregister().then(function(){cs.forEach(function(c){try{c.navigate(c.url).catch(function(){})}catch(err){}})})})
+  .catch(function(){return self.registration.unregister()})
+)});

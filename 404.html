@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0f766e">
+<title>TMC Purchases has moved</title>
+<link rel="manifest" href="manifest.json?v=moved1">
+<link rel="icon" href="icons/favicon-32.png?v=moved1">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=moved1">
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:#f1f5f9;color:#0f172a;font-size:18px;line-height:1.4}
+header{background:#0f766e;color:#fff;padding:14px 16px;padding-top:max(14px,env(safe-area-inset-top));font-weight:700;font-size:20px}
+main{max-width:520px;margin:0 auto;padding:18px 16px 32px;text-align:center}
+.card{background:#fff;border-radius:16px;padding:18px 16px;box-shadow:0 1px 3px rgba(0,0,0,.08);margin-bottom:16px}
+img.logo{width:96px;height:96px;border-radius:20px}
+h1{font-size:24px;margin:10px 0 6px;color:#0f766e}
+p{margin:6px 0}
+.go{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:72px;margin:16px 0 8px;padding:14px 18px;border:0;border-radius:16px;background:#0f766e;color:#fff;font-size:22px;font-weight:800;text-decoration:none;box-shadow:0 3px 8px rgba(15,118,110,.35)}
+.go:active{transform:scale(.98)}
+.url{font-weight:700;word-break:break-all;color:#0f766e}
+.cd{color:#475569;font-size:16px;min-height:22px}
+.l{border-top:1px solid #e2e8f0;padding-top:10px;margin-top:10px}
+.safe{background:#ecfdf5;border:2px solid #a7f3d0;border-radius:12px;padding:10px;font-size:16px;color:#065f46}
+</style>
+</head>
+<body>
+<header>TMC Purchases</header>
+<main>
+<div class="card">
+<img class="logo" src="icons/icon-192.png?v=moved1" alt="">
+<h1>TMC Purchases has moved</h1>
+<p>Please use the new address:</p>
+<p class="url">johankirsten82.github.io/tmc-purchases/</p>
+<a class="go" id="go" href="https://johankirsten82.github.io/tmc-purchases/">➜ Open TMC Purchases</a>
+<p class="cd" id="cd" aria-live="polite"></p>
+<div class="l" lang="fr"><b>TMC Purchases a déménagé.</b> Touchez le bouton vert pour ouvrir la nouvelle adresse.</div>
+<div class="l" lang="af"><b>TMC Purchases het geskuif.</b> Tik die groen knoppie om die nuwe adres oop te maak.</div>
+</div>
+<div class="safe">✔ Your saved work stays on this phone and will be sent from the new address. · ✔ Vos données restent sur ce téléphone. · <span lang="af">✔ Jou werk bly op hierdie foon.</span></div>
+<p class="cd" style="margin-top:14px">Install again from the new address (Add to Home screen), then remove the old icon.</p>
+</main>
+<script>
+/* Moved page: NO app code, NO sync, NO network calls except loading this page. It never reads, deletes or changes saved phone data (local storage),
+   so the new app at /tmc-purchases/ (same site) finds any unsynced work and sends it. It only removes the old app's
+   service worker and its pa-* caches, then opens the new address. */
+(function(){
+var NEW="https://johankirsten82.github.io/tmc-purchases/",S=3,cd=document.getElementById("cd");
+function clean(){var w=[];
+  try{if("serviceWorker" in navigator&&navigator.serviceWorker.getRegistrations)w.push(navigator.serviceWorker.getRegistrations().then(function(rs){return Promise.all(rs.filter(function(r){return r.scope.indexOf("/tmc-sahara-purshes/")>=0}).map(function(r){return r.unregister()}))}).catch(function(){}))}catch(e){}
+  try{if(window.caches&&caches.keys)w.push(caches.keys().then(function(k){return Promise.all(k.filter(function(x){return /^pa-/.test(x)}).map(function(x){return caches.delete(x)}))}).catch(function(){}))}catch(e){}
+  return Promise.all(w)}
+var done=false;function go(){if(done)return;done=true;location.replace(NEW)}
+var cl=clean();
+function tick(){if(S<=0){Promise.race([cl,new Promise(function(r){setTimeout(r,1500)})]).then(go);return}cd.textContent="Opening in "+S+" … / Ouverture dans "+S+" … / Maak oop oor "+S+" …";S--;setTimeout(tick,1000)}
+tick();
+})();
+</script>
+</body>
+</html>
